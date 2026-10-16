@@ -1,0 +1,63 @@
+`timescale 1ns / 1ps
+import RISCV_Config_PKG::*;
+
+module ALU (
+    input  logic [31:0] dataA,
+    input  logic [31:0] dataB,
+    input  logic [4:0]  ALUOperation,
+    output logic [31:0] ALUOutput
+);
+
+    always_comb begin
+        case (ALUOperation)
+            // --- Base RV32I Instructions ---
+            5'b00000: ALUOutput = dataA | dataB;                                       // OR
+            5'b00001: ALUOutput = dataA & dataB;                                       // AND
+            5'b00010: ALUOutput = dataA + dataB;                                       // ADD
+            5'b00011: ALUOutput = dataA - dataB;                                       // SUB
+            5'b00101: ALUOutput = ($signed(dataA) < $signed(dataB)) ? 32'd1 : 32'd0;  // SLT
+            5'b01000: ALUOutput = dataA << dataB[4:0];                                 // SLL
+            5'b01001: ALUOutput = dataA ^ dataB;                                       // XOR
+            5'b01010: ALUOutput = dataA >> dataB[4:0];                                 // SRL
+            5'b01011: ALUOutput = $signed(dataA) >>> dataB[4:0];                       // SRA
+            5'b01101: ALUOutput = (dataA < dataB) ? 32'd1 : 32'd0;                     // SLTU
+
+            // --- RV32M Extension Instructions ---
+            5'b01110: ALUOutput = dataA * dataB;                                                        // MUL
+            5'b01111: ALUOutput = 32'(( $signed({{32{dataA[31]}}, dataA}) * $signed({{32{dataB[31]}}, dataB}) ) >> 32); // MULH
+            5'b10000: ALUOutput = 32'(( $signed({{32{dataA[31]}}, dataA}) * $signed({32'b0, dataB}) ) >> 32);         // MULHSU
+            5'b10001: ALUOutput = 32'(( {32'b0, dataA} * {32'b0, dataB} ) >> 32);                                      // MULHU
+
+            5'b10010: begin // DIV
+                if (dataB == 32'b0)
+                    ALUOutput = 32'hFFFFFFFF;
+                else
+                    ALUOutput = $signed(dataA) / $signed(dataB);
+            end
+
+            5'b10011: begin // DIVU
+                if (dataB == 32'b0)
+                    ALUOutput = 32'hFFFFFFFF;
+                else
+                    ALUOutput = dataA / dataB;
+            end
+
+            5'b10100: begin // REM
+                if (dataB == 32'b0)
+                    ALUOutput = dataA;
+                else
+                    ALUOutput = $signed(dataA) % $signed(dataB);
+            end
+
+            5'b10101: begin // REMU
+                if (dataB == 32'b0)
+                    ALUOutput = dataA;
+                else
+                    ALUOutput = dataA % dataB;
+            end
+
+            default: ALUOutput = 32'b0;
+        endcase
+    end
+
+endmodule
